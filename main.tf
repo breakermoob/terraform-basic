@@ -8,13 +8,13 @@ resource "aws_instance" "example"{
    ami = "ami-0fc20dd1da406780b" 
    instance_type = "t2.micro"
 
-   #Add security gruop for expose the ports, with this we can get the id from the security group
+   #Add security group for expose the ports, with this we can get the id from the security group
    vpc_security_group_ids = ["${aws_security_group.instance.id}"]
 
    user_data = <<-EOF
                #!/bin/bash
                echo "Hello, World Leon!" > index.html
-               nohub busybox https -f -p 8080 & 
+               nohup busybox httpd -f -p 8080 & 
                EOF
 
    tags = {
