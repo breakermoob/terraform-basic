@@ -8,7 +8,10 @@ variable "server_port" {
   default     = 8080
 }
 
-#Objeto cluster
+//Return a Json with the availability zones
+data "aws_availability_zones" "all" {}
+
+#Objeto cluster for the machines configuration
 resource "aws_launch_configuration" "example" {
 
   image_id        = "ami-0fc20dd1da406780b"
@@ -29,7 +32,10 @@ resource "aws_launch_configuration" "example" {
 
 //this designate the configuration for the autoscaling
 resource "aws_autoscaling_group" "example" {
-  launch_configuration = "${aws_launch_configuration.example}"
+  launch_configuration = "${aws_launch_configuration.example.id}"
+
+  //indicate the name of zones
+  availability_zones = "${data.aws_availability_zones.all.names}"
 
   //min and max number of machines
   min_size = 2
@@ -38,27 +44,8 @@ resource "aws_autoscaling_group" "example" {
   tag {
     key   = "Name"
     value = "terraform-leon-cluster"
-  }
-}
 
-resource "aws_instance" "example" {
-
-  #Type of machine
-  ami           = "ami-0fc20dd1da406780b"
-  instance_type = "t2.micro"
-
-  #Add security group for expose the ports, with this we can get the id from the security group
-  vpc_security_group_ids = ["${aws_security_group.instance.id}"]
-
-  user_data = <<-EOF
-               #!/bin/bash
-               echo "Hello, World Leon!" > index.html
-               nohup busybox httpd -f -p "${var.server_port}" & 
-               EOF
-
-  tags = {
-    key                 = "Name"
-    value               = "terraform-leon-cluster"
+    //propagate the tags for all machines
     propagate_at_launch = true
   }
 }
@@ -82,14 +69,6 @@ resource "aws_security_group" "instance" {
   lifecycle {
     create_before_destroy = true
   }
-}
-
-#Output vars
-output "public_ip" {
-  value = "${aws_instance.example.public_ip}"
-}
-output "public_dns" {
-  value = "${aws_instance.example.public_dns}"
 }
 
 
