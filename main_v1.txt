@@ -1,0 +1,62 @@
+provider "aws" {
+   region = "us-east-2"
+}
+
+#Vars
+variable "server_port" {
+   description = "this is the port of the server, we will use for the HTTP request"
+   default = 8080
+}
+
+resource "aws_instance" "example"{
+
+   #Type of machine
+   ami = "ami-0fc20dd1da406780b" 
+   instance_type = "t2.micro"
+
+   #Add security group for expose the ports, with this we can get the id from the security group
+   vpc_security_group_ids = ["${aws_security_group.instance.id}"]
+
+   user_data = <<-EOF
+               #!/bin/bash
+               echo "Hello, World Leon!" > index.html
+               nohup busybox httpd -f -p "${var.server_port}" & 
+               EOF
+
+   tags = {
+      Name ="terraform-leon"
+   }
+}
+
+resource "aws_security_group" "instance" {
+   name = "terraform-leon"
+
+   ingress{
+
+      //Ports Range usign the vars
+      from_port = "${var.server_port}"
+      to_port = "${var.server_port}"
+
+      protocol = "tcp"
+
+      #For all
+      cidr_blocks = ["0.0.0.0/0"]
+   }
+}
+
+#Output vars
+output "public_ip" {
+   value = "${aws_instance.example.public_ip}"
+}
+output "public_dns" {
+   value = "${aws_instance.example.public_dns}"
+}
+
+
+#Terraform init for create the proyect structure
+#Terraform plan for review the proyect changes or errors
+#Terraform apply for create the proyect
+
+#Terraform graph -> Show the dependencies from the proyect
+#We can past the result on this page for vizualize the graph
+#http://dreampuf.github.io/GraphvizOnline/
